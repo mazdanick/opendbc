@@ -2,7 +2,7 @@ from opendbc.can import CANDefine, CANParser
 from opendbc.car import Bus, create_button_events, structs
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.interfaces import CarStateBase
-from opendbc.car.mazda.values import DBC, LKAS_LIMITS
+from opendbc.car.mazda.values import DBC, LKAS_LIMITS, CAR
 
 from opendbc.sunnypilot.car.mazda.carstate_ext import CarStateExt
 
@@ -71,8 +71,11 @@ class CarState(CarStateBase, CarStateExt):
     # TODO: this should be from 0 - 1.
     ret.gasPressed = cp.vl["ENGINE_DATA"]["PEDAL_GAS"] > 0
 
-    # Either due to low speed or hands off
-    lkas_blocked = cp.vl["STEER_RATE"]["LKAS_BLOCK"] == 1
+    lkas_blocked_raw = cp.vl["STEER_RATE"]["LKAS_BLOCK"] == 1
+    lkas_blocked = lkas_blocked_raw
+    if self.CP.carFingerprint == CAR.MAZDA_CX5_2022 and ret.standstill:
+      # CX-5 2022 keeps torque available at a stop even though LKAS_BLOCK rises
+      lkas_blocked = False
 
     if self.CP.minSteerSpeed > 0:
       # LKAS is enabled at 52kph going up and disabled at 45kph going down
